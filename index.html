@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<title></title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0">
+		<link rel="stylesheet" type="text/css" href="css.css">
+	</head>
+
+	<body>
+		<div class="h-head">
+			<img src="img/logo.png">
+		</div>
+
+		<div id="nav">
+			<div id="scoll">
+				<ul id="ul">
+					<li id="top">头条</li>
+					<li id="shehui">社会</li>
+					<li id="guonei">国内</li>
+					<li id="guoji">国际</li>
+					<li id="yule">娱乐</li>
+					<li id="tiyu">体育</li>
+					<li id="junshi">军事</li>
+					<li id="keji">科技</li>
+					<li id="caijing">财经</li>
+					<li id="shishang">时尚</li>
+				</ul>
+			</div>
+		</div>
+
+		<div id="content">
+
+		</div>
+
+	</body>
+
+</html>
+<script type="text/javascript" src="indexDB.js"></script>
+<script type="text/javascript" src="template-native-debug.js"></script>
+<script type="text/html" id="newstemp">
+
+	<a href="@(url)" class="ui-news-li">
+		<div class="ui-news-info">
+			<h3>@(title)</h3>
+			<p class="f01">@(author_name)&nbsp;&nbsp;&nbsp;@(date)</p>
+		</div>
+		<img src="@(thumbnail_pic_s)" class="" width="107" height="78">
+	</a>
+
+</script>
+<script type="text/javascript">
+	function $(id) {
+		return document.getElementById(id);
+
+	}
+	// ---------------------
+	var li = document.getElementsByTagName('li');
+	var w = parseFloat(li[0].offsetWidth) * 10;
+	$("scoll").style.width = w + "px";
+	var index = 0;
+	for(var i = 0; i < li.length; i++) {
+
+		var c = li[i];
+
+		li[i].onclick = function(e) {
+			for(var i = 0; i < li.length; i++) {
+				li[i].style.color = "black";
+			}
+
+			name = e.target.id;
+			this.style.color = "red";
+			color(name);
+		}
+
+	}
+	// ----------------------  
+
+	document.onmouseup = function(event) {
+		document.onmousemove = "";
+	}
+
+	xmlhttp = null;
+	if(window.XMLHttpRequest) {
+		xmlhttp = new XMLHttpRequest();
+	} else {
+		xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+	}
+	//----------
+	isTouchDevice();
+
+	function bindEvent() {
+		$("nav").addEventListener('touchstart', touchStartFunc, false);
+		$("nav").addEventListener('touchmove', touchMoveFunc, false);
+		$("nav").addEventListener('touchend', touchEndFunc, false);
+	}
+	//触摸----------------start
+	var startX = 0;
+
+	function touchMoveFunc(event) {
+
+		var touch = event.touches[0];
+		var x = parseFloat(touch.pageX);
+		var offset = x - startX;
+		startX = x;
+
+		var val = parseFloat($("scoll").offsetLeft);
+		var newLeft = val + offset;
+		console.log(startX);
+		if(newLeft >= 0) {
+			newLeft = 0;
+		} else if(newLeft < (parseFloat($("nav").offsetWidth) - parseFloat($("scoll").offsetWidth))) {
+			newLeft = ($("nav").offsetWidth) - parseFloat($("scoll").offsetWidth);
+
+		}
+		$("scoll").style.left = newLeft + "px";
+
+	}
+
+	function touchEndFunc(argument) {
+		startX = 0;
+	}
+
+	function touchStartFunc(event) {
+		var touch = event.touches[0];
+		startX = parseFloat(touch.pageX);
+	}
+	//手机上的滑动
+	function isTouchDevice() {
+		try {
+			document.createEvent("TouchEvent");
+			bindEvent();
+		} catch(e) {
+			$("scoll").onmousedown = function(event) {
+				var spaceX = event.pageX - parseFloat($("scoll").offsetLeft);
+				document.onmousemove = function(event) {
+					if(($("nav").offsetWidth - $("scoll").offsetWidth) < 0) {
+						var nlfet = event.pageX - spaceX;
+						if(nlfet >= 0) {
+							nlfet = 0;
+						} else if(nlfet < parseFloat($("nav").offsetWidth) - parseFloat($("scoll").offsetWidth)) {
+
+							nlfet = ($("nav").offsetWidth) - parseFloat($("scoll").offsetWidth);
+							console.log($("nav").offsetWidth);
+							console.log(parseFloat($("scoll").offsetWidth));
+						}
+
+						$("scoll").style.left = nlfet + "px";
+
+						window.getSelection ? window.getSelection().removeAllRanges() : document.selection.empty();
+					}
+
+				}
+			}
+		}
+
+	}
+	// /------------------拉取数据
+	var schemas = {
+		top: 0,
+		shehui: 0,
+		guonei: 0,
+		guoji: 0,
+		yule: 0,
+		tiyu: 0,
+		junshi: 0,
+		keji: 0,
+		caijing: 0,
+		shishang: 0
+	};
+	var name = "top";
+
+	createindexdb(schemas, function() {
+		color("name");
+	});
+
+	function color(red) {
+
+		if(xmlhttp != null) {
+			var url = "/todaytopnews/index.php?type=" + red;
+			xmlhttp.open("GET", url, true);
+			xmlhttp.onreadystatechange = abc;
+			xmlhttp.send(null);
+		}
+	}
+
+	function abc(da) {
+		if(xmlhttp.status == 200) {
+			if(xmlhttp.readyState == 4) {
+				addnews(name, JSON.parse(da.currentTarget.responseText).result.data, function() {
+					queryMax(name, function(Max) {
+						schemas[name] = Max;
+			fetchNew(name, schemas[name], 5, function(data) {
+				var l = data.length;
+
+				$("content").innerHTML = "";
+
+							
+							var temp = document.getElementById("newstemp").innerHTML;
+							var s = '';
+								for(var i = 0; i < l; i++) {
+									s += replaceTemp(temp, data[i]);
+								}
+
+							$("content").innerHTML = s; 
+
+							function replaceTemp(t, data) {
+								//匹配
+								reg = /@\((\w+)\)/gi;
+
+								return t.replace(reg, function(value, key) {
+									return data[key];
+								})
+							}
+
+							var div = document.createElement(div);
+							var t=document.createTextNode("点击加载更多");
+							div.appendChild(t);
+							div.setAttribute("id","more");	
+							$("content").appendChild(div);
+						div.addEventListener("click",loadMore,false); 
+//---------------------------------------------------------------------------------------------------
+var b = 5;
+							function loadMore(){
+	b+=5;
+						fetchNew(name, schemas[name], b, function(data) {
+							var l = data.length;
+						
+
+							$("content").innerHTML = "";
+										var temp = document.getElementById("newstemp").innerHTML;
+										var s = '';
+											for(var i = 0; i < l; i++) {
+												s += replaceTemp(temp, data[i]);
+											}
+
+										$("content").innerHTML = s; 
+
+										function replaceTemp(t, data) {
+											//匹配
+											reg = /@\((\w+)\)/gi;
+
+											return t.replace(reg, function(value, key) {
+												return data[key];
+											})
+										}
+
+										var div = document.createElement(div);
+										var t=document.createTextNode("点击加载更多");
+										div.appendChild(t);
+										div.setAttribute("id","more");	
+										$("content").appendChild(div);
+									div.addEventListener("click",loadMore,false); 
+										 
+
+									})
+			 
+							};
+
+						})
+					})
+				});
+				// var html =template("newstemp",JSON.parse(da.currentTarget.responseText).result);
+
+				console.log(JSON.parse(da.currentTarget.responseText).result);
+				// $("content").innerHTML=html;
+			} else {
+				$("content").innerHTML = "HOLD ON";
+			}
+
+		} else {
+
+		}
+
+	}
+
+</script>
